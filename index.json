@@ -1,0 +1,55 @@
+{
+  "format": 1,
+  "name": "Wispy's Tweaks",
+  "description": "Wispy's personal Valenced tweaks.",
+  "plugins": {
+    "wispy.file-uploader": {
+      "name": "File Uploader",
+      "description": "Upload files and attachments to 25+ services (Zipline, Catbox, GoFile, temp.sh, Litterbox, Buzzheavier, Uguu, Pomf, Oshi, Imgur, Cloudinary, Gyazo, KrakenFiles, S3, WebDAV, Immich, E-Z Host, Nest, PixelVault, PixelDrain, ShareX, etc.) and shorten URLs.",
+      "author": "Rosie",
+      "icon": "ic_upload",
+      "channels": {
+        "latest": "1.4.1"
+      },
+      "versions": {
+        "1.4.1": {
+          "url": "https://vvispy.github.io/wispy-valenced-tweaks/pool/wispy.file-uploader@1.4.1.zip",
+          "sha256": "84d3a78746edc2d3aeeed2f6c764c5fe351f2cd4903db484758d1c5d09652ab7",
+          "size": 21280,
+          "dependencies": {
+            "valenced.api": {
+              "version": ">=1 <2"
+            },
+            "discord": {
+              "version": "*"
+            }
+          }
+        }
+      }
+    },
+    "wispy.tweaks": {
+      "name": "Wispy's Tweaks",
+      "description": "Adds a Launchpad shortcut to the You bar and hides profile banners, profile themes, the Add a Server button and Nitro-locked reaction emojis.",
+      "author": "Wispy (https://github.com/VVispy \"GitHub\")",
+      "icon": "MagicWandIcon",
+      "channels": {
+        "latest": "1.0.0"
+      },
+      "versions": {
+        "1.0.0": {
+          "url": "https://vvispy.github.io/wispy-valenced-tweaks/pool/wispy.tweaks@1.0.0.zip",
+          "sha256": "687db5017006f6e0362a9d6735698987e0aff1091fe27cffb6ecd84bb6484db5",
+          "size": 3320,
+          "dependencies": {
+            "valenced.api": {
+              "version": ">=1 <2"
+            },
+            "discord": {
+              "version": "*"
+            }
+          }
+        }
+      }
+    }
+  }
+}
