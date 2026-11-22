@@ -1,0 +1,20 @@
+{
+    "format": 1,
+    "id": "wispy.file-uploader",
+    "name": "File Uploader",
+    "description": "Upload files and attachments to 25+ services (Zipline, Catbox, GoFile, temp.sh, Litterbox, Buzzheavier, Uguu, Pomf, Oshi, Imgur, Cloudinary, Gyazo, KrakenFiles, S3, WebDAV, Immich, E-Z Host, Nest, PixelVault, PixelDrain, ShareX, etc.) and shorten URLs.",
+    "author": "Rosie",
+    "icon": "ic_upload",
+    "version": "1.4.1",
+    "dependencies": {
+        "valenced.api": {
+            "version": ">=1 <2"
+        },
+        "discord": {
+            "version": "*"
+        }
+    },
+    "dist": {
+        "script": "index.js"
+    }
+}
