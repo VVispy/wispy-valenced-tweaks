@@ -47,6 +47,19 @@ function focusSearch(search: Search) {
 	focusedSearch = search
 }
 
+// A search bar that is still mounting isn't on screen when that focus reaches it, so no keyboard opens, yet
+// React Native records it as focused and ignores later focuses. Blur and focus it again once it is mounted.
+function refocusSearch(search: Search) {
+	// The first timer waits for the commit that mounts the launchpad, the second for that to reach the screen.
+	setTimeout(() =>
+		setTimeout(() => {
+			if (focusedSearch !== search) return
+			search.blur()
+			search.focus()
+		}, 100),
+	)
+}
+
 function blurSearch() {
 	const search = focusedSearch
 	if (!search) return
@@ -81,13 +94,19 @@ function watchSearchRef(ref: SearchRef) {
 	if (watched.has(ref)) return
 	watched.add(ref)
 	let search = ref.current
+	let mounted = !!search
 	Object.defineProperty(ref, 'current', {
 		configurable: true,
 		enumerable: true,
 		get: () => search,
 		set(next: Search | null) {
 			search = next
-			if (next && Date.now() < focusUntil) focusSearch(next)
+			if (!next) return
+			const mounting = !mounted
+			mounted = true
+			if (Date.now() >= focusUntil) return
+			focusSearch(next)
+			if (mounting) refocusSearch(next)
 		},
 	})
 }
