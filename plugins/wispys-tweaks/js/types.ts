@@ -1,6 +1,8 @@
 export interface TweaksSettings {
 	/** Show a Launchpad shortcut on the You bar in place of the pull tab */
 	showLaunchpad: boolean
+	/** Open and close the Launchpad without its slide animation */
+	instantLaunchpad: boolean
 	/** Hide banners on user profiles */
 	profileBanners: boolean
 	/** Use the app theme on user profiles instead of their profile colors */

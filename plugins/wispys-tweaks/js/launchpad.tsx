@@ -3,10 +3,12 @@ import {
 	getModuleWithImportedPath,
 	lookupModuleWithImportedPath,
 } from '@valenced/discord/utils/modules/finders'
+import { JsonStorageUpdateMode } from '@valenced/json-storage'
 import { instead } from '@valenced/patcher'
 import { lookupGeneratedIconComponent } from '@valenced/utils/discord'
 import { View } from 'react-native'
 import { DEFAULTS } from './defaults'
+import { getSettings } from './lib/state'
 import type { PluginApi } from '@valenced/plugins/types'
 import type * as React from 'react'
 import type { TweaksSettings } from './types'
@@ -125,6 +127,27 @@ export function patchLaunchpad({
 	plugin,
 	jsonStorage,
 }: PluginApi<{ jsonStorage: TweaksSettings }>): void {
+	let spring: { duration?: number } | undefined
+	// A spring with a duration of 0 finishes on its first frame. Discord copies this config to the UI thread when
+	// the launchpad first renders, so changing it later does nothing until a reload.
+	const skipAnimation = () => {
+		if (spring && getSettings().instantLaunchpad) spring.duration = 0
+	}
+	cleanup(
+		getModuleWithImportedPath<{
+			LAUNCH_PAD_SPRING_CONFIG?: { duration?: number }
+		}>('modules/launchpad/native/LaunchPadConstants.tsx', module => {
+			spring = module.LAUNCH_PAD_SPRING_CONFIG
+			if (!spring) plugin.reportError('Launchpad animation is unavailable.')
+			skipAnimation()
+		}),
+	)
+	cleanup(
+		jsonStorage.subscribe((update, mode) => {
+			if (mode === JsonStorageUpdateMode.Load) skipAnimation()
+			else if ('instantLaunchpad' in update) plugin.requireReload()
+		}),
+	)
 	cleanup(
 		getModuleWithImportedPath<{
 			default: { type(props: object): React.ReactNode }

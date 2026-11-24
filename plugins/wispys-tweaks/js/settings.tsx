@@ -38,6 +38,16 @@ export default function Settings({
 					onValueChange={showLaunchpad => jsonStorage.set({ showLaunchpad })}
 				/>
 			</Design.TableRowGroup>
+			<Design.TableRowGroup title="Launchpad">
+				<Design.TableSwitchRow
+					label="Instant Launchpad"
+					subLabel="Opens and closes the Launchpad without the slide animation. Needs a reload"
+					value={settings.instantLaunchpad}
+					onValueChange={instantLaunchpad =>
+						jsonStorage.set({ instantLaunchpad })
+					}
+				/>
+			</Design.TableRowGroup>
 			<Design.TableRowGroup title="Hide">
 				{HIDES.map(([key, label, subLabel]) => (
 					<Design.TableSwitchRow
