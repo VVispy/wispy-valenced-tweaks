@@ -33,7 +33,7 @@
       "author": "Wispy (https://github.com/VVispy \"GitHub\")",
       "icon": "MagicWandIcon",
       "channels": {
-        "latest": "1.1.0"
+        "latest": "1.1.1"
       },
       "versions": {
         "1.0.0": {
@@ -53,6 +53,19 @@
           "url": "https://vvispy.github.io/wispy-valenced-tweaks/pool/wispy.tweaks@1.1.0.zip",
           "sha256": "53fa11c1f445cf6e52715b1f99451cf7c83188001206ecd0b65d2e53b615efbc",
           "size": 3552,
+          "dependencies": {
+            "valenced.api": {
+              "version": ">=1 <2"
+            },
+            "discord": {
+              "version": "*"
+            }
+          }
+        },
+        "1.1.1": {
+          "url": "https://vvispy.github.io/wispy-valenced-tweaks/pool/wispy.tweaks@1.1.1.zip",
+          "sha256": "84056137df5ca81815c857a808ab671682e5cd2630fef418a60c6a403817178f",
+          "size": 4021,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
