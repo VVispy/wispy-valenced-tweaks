@@ -5,8 +5,15 @@ import {
 } from '@valenced/discord/utils/modules/finders'
 import { JsonStorageUpdateMode } from '@valenced/json-storage'
 import { instead } from '@valenced/patcher'
+import { beforeJSX, insteadJSX } from '@valenced/react/jsx-runtime'
 import { lookupGeneratedIconComponent } from '@valenced/utils/discord'
-import { View } from 'react-native'
+import {
+	cloneElement,
+	isValidElement,
+	useEffect,
+	useRef,
+	useState,
+} from 'react'
 import { DEFAULTS } from './defaults'
 import { getSettings } from './lib/state'
 import type { PluginApi } from '@valenced/plugins/types'
@@ -113,7 +120,93 @@ function watchSearchRef(ref: SearchRef) {
 	})
 }
 
+type GestureObject = {
+	config?: { enabled?: boolean; [key: string]: unknown }
+	handlers?: Record<string, unknown>
+}
+
+type DisabledGestureCache = {
+	source: GestureObject
+	clone: GestureObject
+}
+
+let launchpadOpen = false
+let lastLaunchpadVisible = false
+const launchpadOpenListeners = new Set<(open: boolean) => void>()
+
+function setLaunchpadOpen(open: boolean) {
+	if (launchpadOpen === open) return
+	launchpadOpen = open
+	for (const listener of launchpadOpenListeners) listener(open)
+}
+
+function useLaunchpadOpen(): boolean {
+	const [open, setOpen] = useState(launchpadOpen)
+	useEffect(() => {
+		setOpen(launchpadOpen)
+		launchpadOpenListeners.add(setOpen)
+		return () => {
+			launchpadOpenListeners.delete(setOpen)
+		}
+	}, [])
+	return open
+}
+
+function isGestureObject(value: unknown): value is GestureObject {
+	return (
+		!!value &&
+		typeof value === 'object' &&
+		'config' in value &&
+		'handlers' in value
+	)
+}
+
+function getDisabledGesture(
+	cache: React.MutableRefObject<DisabledGestureCache | null>,
+	gesture: GestureObject,
+): GestureObject {
+	if (cache.current?.source === gesture) return cache.current.clone
+	const clone: GestureObject = Object.assign(
+		Object.create(Object.getPrototypeOf(gesture)),
+		gesture,
+		{
+			config: { ...gesture.config, enabled: false },
+			handlers: { ...gesture.handlers },
+		},
+	)
+	cache.current = { source: gesture, clone }
+	return clone
+}
+
+function disableLaunchPadGesture(
+	node: React.ReactNode,
+	cache: React.MutableRefObject<DisabledGestureCache | null>,
+	depth = 0,
+): React.ReactNode {
+	if (
+		!isValidElement<{ gesture?: unknown; children?: React.ReactNode }>(node) ||
+		depth > 4
+	)
+		return node
+	const { gesture, children } = node.props
+	if (isGestureObject(gesture)) {
+		if (gesture.config?.enabled === false) return node
+		return cloneElement(node, {
+			gesture: getDisabledGesture(cache, gesture),
+		})
+	}
+	if (children === undefined) return node
+	const nextChildren = disableLaunchPadGesture(children, cache, depth + 1)
+	return nextChildren === children
+		? node
+		: cloneElement(node, undefined, nextChildren)
+}
+
 function showLaunchpad() {
+	setLaunchpadOpen(true)
+	setTimeout(() => {
+		if (!lastLaunchpadVisible) setLaunchpadOpen(false)
+	}, 500)
 	lookupModuleWithImportedPath<{ default(): void }>(
 		'modules/launchpad/native/showLaunchPad.tsx',
 	)[0]?.default()
@@ -148,23 +241,53 @@ export function patchLaunchpad({
 			else if ('instantLaunchpad' in update) plugin.requireReload()
 		}),
 	)
+	cleanup(() => {
+		launchpadOpen = false
+		lastLaunchpadVisible = false
+		launchpadOpenListeners.clear()
+	})
 	cleanup(
 		getModuleWithImportedPath<{
-			default: { type(props: object): React.ReactNode }
-		}>('modules/launchpad/native/LaunchPadPullTab.tsx', module => {
-			if (typeof module.default?.type !== 'function') {
-				plugin.reportError('Launchpad pull tab is unavailable.')
+			default(props: Record<string, unknown>): React.ReactNode
+		}>('modules/launchpad/native/LaunchPadContainer.tsx', module => {
+			const LaunchPadContainer = module.default
+			if (typeof LaunchPadContainer !== 'function') {
+				plugin.reportError('Launchpad container is unavailable.')
+				return
+			}
+			function PatchedLaunchPadContainer(props: Record<string, unknown>) {
+				const { showLaunchpad } = { ...DEFAULTS, ...jsonStorage.use() }
+				const open = useLaunchpadOpen()
+				const disabledGestureRef = useRef<DisabledGestureCache | null>(null)
+				const tree = LaunchPadContainer(props)
+				if (!showLaunchpad || open) return tree
+				return disableLaunchPadGesture(tree, disabledGestureRef)
+			}
+			cleanup(
+				insteadJSX(LaunchPadContainer, ([_, props, key], jsx) =>
+					jsx(PatchedLaunchPadContainer, props, key),
+				),
+			)
+		}),
+	)
+	cleanup(
+		getModuleWithImportedPath<{
+			default: React.ComponentType<{ launchPadType?: string }>
+		}>('modules/launchpad/native/LaunchPadWrapper.tsx', module => {
+			if (typeof module.default !== 'function') {
+				plugin.reportError('Launchpad wrapper is unavailable.')
 				return
 			}
 			cleanup(
-				instead(module.default, 'type', function (args, original) {
-					const { showLaunchpad } = { ...DEFAULTS, ...jsonStorage.use() }
-					const pullTab = Reflect.apply(original, this, args)
-					return showLaunchpad ? (
-						<View style={{ display: 'none' }}>{pullTab}</View>
-					) : (
-						pullTab
-					)
+				beforeJSX(module.default, args => {
+					const [type, props] = args
+					if (
+						getSettings().showLaunchpad &&
+						props?.launchPadType !== 'disabled'
+					) {
+						return [type, { ...props, launchPadType: 'disabled' }, args[2]]
+					}
+					return args
 				}),
 			)
 		}),
@@ -187,6 +310,11 @@ export function patchLaunchpad({
 						sharedState?: SharedState
 					}
 					watchSharedState(props.sharedState)
+					const visible = !!props.visible
+					if (visible !== lastLaunchpadVisible) {
+						lastLaunchpadVisible = visible
+						setTimeout(() => setLaunchpadOpen(visible), 0)
+					}
 					// Closing by gesture doesn't go through the shared state's setter here.
 					if (!props.visible) blurSearch()
 					return launchpad
